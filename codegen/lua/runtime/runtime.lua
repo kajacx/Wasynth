@@ -1,19 +1,21 @@
 local module = {}
 
 local bit = require("bit")
-local ffi = require("ffi")
+-- local ffi = require("ffi")
 
-local u32 = ffi.typeof("uint32_t")
-local u64 = ffi.typeof("uint64_t")
-local i64 = ffi.typeof("int64_t")
+local function identity(x) return x end
+
+local u32 = identity -- ffi.typeof("uint32_t")
+local u64 = identity -- ffi.typeof("uint64_t")
+local i64 = identity -- ffi.typeof("int64_t")
 
 local math_ceil = math.ceil
 local math_floor = math.floor
 local to_number = tonumber
 local to_signed = bit.tobit
 
-local NUM_ZERO = i64(0)
-local NUM_ONE = i64(1)
+-- local NUM_ZERO = i64(0)
+-- local NUM_ONE = i64(1)
 
 local function truncate_f64(num)
 	if num >= 0 then
@@ -39,10 +41,10 @@ do
 	local math_min = math.min
 	local math_max = math.max
 
-	local RE_INSTANCE = ffi.new([[union {
-		double f64;
-		struct { int32_t a32, b32; };
-	}]])
+	-- local RE_INSTANCE = ffi.new([[union {
+	-- 	double f64;
+	-- 	struct { int32_t a32, b32; };
+	-- }]])
 
 	local function round(num)
 		if num >= 0 then
@@ -410,12 +412,12 @@ do
 
 	-- This would surely be an issue in a multi-thread environment...
 	-- ... thankfully this isn't one.
-	local RE_INSTANCE = ffi.new([[union {
-		int32_t i32;
-		int64_t i64;
-		float f32;
-		double f64;
-	}]])
+	-- local RE_INSTANCE = ffi.new([[union {
+	-- 	int32_t i32;
+	-- 	int64_t i64;
+	-- 	float f32;
+	-- 	double f64;
+	-- }]])
 
 	function wrap.i32_i64(num)
 		RE_INSTANCE.i64 = num
@@ -613,182 +615,184 @@ do
 	local store = {}
 	local allocator = {}
 
-	ffi.cdef([[
-	union Any {
-		int8_t i8;
-		int16_t i16;
-		int32_t i32;
-		int64_t i64;
+	-- ffi.cdef([[
+	-- union Any {
+	-- 	int8_t i8;
+	-- 	int16_t i16;
+	-- 	int32_t i32;
+	-- 	int64_t i64;
 
-		uint8_t u8;
-		uint16_t u16;
-		uint32_t u32;
-		uint64_t u64;
+	-- 	uint8_t u8;
+	-- 	uint16_t u16;
+	-- 	uint32_t u32;
+	-- 	uint64_t u64;
 
-		float f32;
-		double f64;
-	};
+	-- 	float f32;
+	-- 	double f64;
+	-- };
 
-	struct Memory {
-		uint32_t min;
-		uint32_t max;
-		union Any *data;
-	};
+	-- struct Memory {
+	-- 	uint32_t min;
+	-- 	uint32_t max;
+	-- 	union Any *data;
+	-- };
 
-	void *calloc(size_t num, size_t size);
-	void *realloc(void *ptr, size_t size);
-	void free(void *ptr);
-	]])
+	-- void *calloc(size_t num, size_t size);
+	-- void *realloc(void *ptr, size_t size);
+	-- void free(void *ptr);
+	-- ]])
 
-	local alias_t = ffi.typeof("uint8_t *")
-	local any_t = ffi.typeof("union Any *")
-	local cast = ffi.cast
+	-- local alias_t = ffi.typeof("uint8_t *")
+	-- local any_t = ffi.typeof("union Any *")
+	-- local cast = ffi.cast
 
 	local function by_offset(pointer, offset)
-		local aliased = cast(alias_t, pointer)
+		-- local aliased = cast(alias_t, pointer)
 
-		return cast(any_t, aliased + offset)
+		-- return cast(any_t, aliased + offset)
 	end
 
 	function load.i32_i8(memory, addr)
-		return by_offset(memory.data, addr).i8
+		return memory[addr / 4] % 256
 	end
 
 	function load.i32_u8(memory, addr)
-		return by_offset(memory.data, addr).u8
+		return memory[addr / 4] % 256
 	end
 
 	function load.i32_i16(memory, addr)
-		return by_offset(memory.data, addr).i16
+		return memory[addr / 4] % (256 * 256)
 	end
 
 	function load.i32_u16(memory, addr)
-		return by_offset(memory.data, addr).u16
+		return memory[addr / 4] % (256 * 256)
 	end
 
 	function load.i32(memory, addr)
-		return by_offset(memory.data, addr).i32
+		return memory[addr / 4]
 	end
 
 	function load.i64_i8(memory, addr)
-		return (i64(by_offset(memory.data, addr).i8))
+		return memory[addr / 4] % 256
 	end
 
 	function load.i64_u8(memory, addr)
-		return (i64(by_offset(memory.data, addr).u8))
+		return memory[addr / 4] % 256
 	end
 
 	function load.i64_i16(memory, addr)
-		return (i64(by_offset(memory.data, addr).i16))
+		return memory[addr / 4] % (256 * 256)
 	end
 
 	function load.i64_u16(memory, addr)
-		return (i64(by_offset(memory.data, addr).u16))
+		return memory[addr / 4] % (256 * 256)
 	end
 
 	function load.i64_i32(memory, addr)
-		return (i64(by_offset(memory.data, addr).i32))
+		return memory[addr / 4]
 	end
 
 	function load.i64_u32(memory, addr)
-		return (i64(by_offset(memory.data, addr).u32))
+		return memory[addr / 4]
 	end
 
 	function load.i64(memory, addr)
-		return by_offset(memory.data, addr).i64
+		return memory[addr / 4]
 	end
 
 	function load.f32(memory, addr)
-		return by_offset(memory.data, addr).f32
+		return memory[addr / 4]
 	end
 
 	function load.f64(memory, addr)
-		return by_offset(memory.data, addr).f64
+		return memory[addr / 4]
 	end
 
 	function load.string(memory, addr, len)
-		local start = cast(alias_t, memory.data) + addr
+		-- local start = cast(alias_t, memory) + addr
 
-		return ffi.string(start, len)
+		-- return ffi.string(start, len)
 	end
 
 	function store.i32_n8(memory, addr, value)
-		by_offset(memory.data, addr).i8 = value
+		memory[addr / 4] = value
 	end
 
 	function store.i32_n16(memory, addr, value)
-		by_offset(memory.data, addr).i16 = value
+		memory[addr / 4] = value
 	end
 
 	function store.i32(memory, addr, value)
-		by_offset(memory.data, addr).i32 = value
+		memory[addr / 4] = value
 	end
 
 	function store.i64_n8(memory, addr, value)
-		by_offset(memory.data, addr).i8 = value
+		memory[addr / 4] = value
 	end
 
 	function store.i64_n16(memory, addr, value)
-		by_offset(memory.data, addr).i16 = value
+		memory[addr / 4] = value
 	end
 
 	function store.i64_n32(memory, addr, value)
-		by_offset(memory.data, addr).i32 = value
+		memory[addr / 4] = value
 	end
 
 	function store.i64(memory, addr, value)
-		by_offset(memory.data, addr).i64 = value
+		memory[addr / 4] = value
 	end
 
 	function store.f32(memory, addr, value)
-		by_offset(memory.data, addr).f32 = value
+		memory[addr / 4] = value
 	end
 
 	function store.f64(memory, addr, value)
-		by_offset(memory.data, addr).f64 = value
+		memory[addr / 4] = value
 	end
 
 	function store.string(memory, addr, data, len)
-		local start = by_offset(memory.data, addr)
+		local start = by_offset(memory, addr)
 
-		ffi.copy(start, data, len or #data)
+		-- ffi.copy(start, data, len or #data)
 	end
 
 	function store.copy(memory_1, addr_1, memory_2, addr_2, len)
 		local start_1 = by_offset(memory_1.data, addr_1)
 		local start_2 = by_offset(memory_2.data, addr_2)
 
-		ffi.copy(start_1, start_2, len)
+		-- ffi.copy(start_1, start_2, len)
 	end
 
 	function store.fill(memory, addr, len, value)
-		local start = by_offset(memory.data, addr)
+		local start = by_offset(memory, addr)
 
-		ffi.fill(start, len, value)
+		-- ffi.fill(start, len, value)
 	end
 
 	local WASM_PAGE_SIZE = 65536
 
 	local function finalizer(memory)
-		ffi.C.free(memory.data)
+		-- ffi.C.free(memory)
 	end
 
 	local function grow_unchecked(memory, old, new)
-		memory.data = ffi.C.realloc(memory.data, new)
+		-- memory = ffi.C.realloc(memory, new)
 
-		assert(memory.data ~= nil, "failed to reallocate")
+		-- assert(memory ~= nil, "failed to reallocate")
 
-		ffi.fill(by_offset(memory.data, old), new - old, 0)
+		-- ffi.fill(by_offset(memory, old), new - old, 0)
 	end
 
 	function allocator.new(min, max)
-		local data = ffi.C.calloc(min, WASM_PAGE_SIZE)
+		-- local data = ffi.C.calloc(min, WASM_PAGE_SIZE)
 
-		assert(data ~= nil, "failed to allocate")
+		-- assert(data ~= nil, "failed to allocate")
 
-		local memory = ffi.new("struct Memory", min, max, data)
+		-- local memory = ffi.new("struct Memory", min, max, data)
 
-		return ffi.gc(memory, finalizer)
+		-- return ffi.gc(memory, finalizer)
+
+		return {}
 	end
 
 	function allocator.grow(memory, num)
