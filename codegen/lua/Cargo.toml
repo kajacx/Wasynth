@@ -1,0 +1,17 @@
+[package]
+name = "codegen-lua"
+version = "0.13.0"
+edition = "2021"
+
+[dependencies]
+wasmparser = "0.107.0"
+
+[dependencies.wasm-ast]
+path = "../../wasm-ast"
+
+[features]
+default = ["vector"]
+vector = []
+
+[[bin]]
+name = "wasm2lua"
