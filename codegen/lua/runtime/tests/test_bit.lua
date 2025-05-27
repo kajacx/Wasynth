@@ -1,4 +1,5 @@
-local bit = require('bit')
+-- local bit = require('bit')
+local bit = require('codegen/lua/runtime/bit')
 
 local function assert_equals(value, expected)
     if value ~= expected then
@@ -6,9 +7,32 @@ local function assert_equals(value, expected)
     end
 end
 
-local value = 258
-assert_equals(bit.extract_bytes(value, 0, 1), 2)
-assert_equals(bit.extract_bytes(value, 1, 2), 1)
-assert_equals(bit.extract_bytes(value, 0, 2), 258)
+local value = 5 * (256 ^ 0) + 8 * (256 ^ 1) + 240 * (256 ^ 2) + 50 * (256 ^ 3)
+assert_equals(bit.extract_bytes(value, 0, 1), 5)
+assert_equals(bit.extract_bytes(value, 1, 1), 8)
+assert_equals(bit.extract_bytes(value, 2, 1), 240)
+assert_equals(bit.extract_bytes(value, 3, 1), 50)
+assert_equals(bit.extract_bytes(value, 0, 2), 5 + 8 * 256)
+assert_equals(bit.extract_bytes(value, 1, 2), 8 + 240 * 256)
+assert_equals(bit.extract_bytes(value, 2, 2), 240 + 50 * 256)
+assert_equals(bit.extract_bytes(value, 0, 4), value)
+
+local new_value
+
+-- single byte at start
+new_value = bit.set_bytes(value, 0, 1, 55)
+assert_equals(bit.extract_bytes(new_value, 0, 1), 55)
+assert_equals(bit.extract_bytes(new_value, 1, 3), 8 * (256 ^ 0) + 240 * (256 ^ 1) + 50 * (256 ^ 2))
+
+-- single byte in the middle
+new_value = bit.set_bytes(value, 1, 1, 88)
+assert_equals(bit.extract_bytes(new_value, 0, 1), 5)
+assert_equals(bit.extract_bytes(new_value, 1, 1), 88)
+assert_equals(bit.extract_bytes(new_value, 2, 2), 240 + 50 * 256)
+
+-- single byte at end
+new_value = bit.set_bytes(value, 3, 1, 250)
+assert_equals(bit.extract_bytes(new_value, 0, 3), 5 * (256 ^ 0) + 8 * (256 ^ 1) + 240 * (256 ^ 2))
+assert_equals(bit.extract_bytes(new_value, 3, 1), 250)
 
 print("Tests passed successfully.")
