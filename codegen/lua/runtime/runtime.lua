@@ -652,12 +652,25 @@ do
 		-- return cast(any_t, aliased + offset)
 	end
 
+
+	local function load_byte(memory, addr)
+		local offset = addr % 4
+		return bit32.rshift(memory.data[(addr - offset) / 4] or 0, 8 * offset)
+	end
+
+	local function store_byte(memory, addr, value)
+		local offset = addr % 4
+		local base = (addr - offset) / 4
+		local old = clear_byte(memory.data[base] or 0, offset)
+		memory.data[base] = bit32.bor(old, bit32.lshift(value, 8 * offset))
+	end
+
 	function load.i32_i8(memory, addr)
-		return memory[addr / 4] % 256
+		return load_byte(memory, addr)
 	end
 
 	function load.i32_u8(memory, addr)
-		return memory[addr / 4] % 256
+		return load_byte(memory, addr)
 	end
 
 	function load.i32_i16(memory, addr)
@@ -792,7 +805,12 @@ do
 
 		-- return ffi.gc(memory, finalizer)
 
-		return {}
+		local memory = {}
+		for i = min, max do
+			memory[i] = 0
+		end
+
+		return memory
 	end
 
 	function allocator.grow(memory, num)
