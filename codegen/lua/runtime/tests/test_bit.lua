@@ -64,6 +64,8 @@ local new_value_num = 55 * (256 ^ 0) + 88 * (256 ^ 1) + 250 * (256 ^ 2) + 111 * 
 new_value = bit.set_bytes(value, 0, 4, new_value_num)
 assert_equals(bit.extract_bytes(new_value, 0, 4), new_value_num)
 
+
+-- argument checking
 expect_error(function() bit.extract_bytes(value, -5, 2) end, "start byte negative")
 expect_error(function() bit.extract_bytes(value, 5, 2) end, "start byte too large")
 expect_error(function() bit.extract_bytes(value, 0, -2) end, "length negative")
@@ -76,5 +78,14 @@ expect_error(function() bit.set_bytes(value, 2, 3, 1) end, "length too large")
 
 expect_error(function() bit.set_bytes(value, 0, 1, 257) end, "byte overflow")
 expect_error(function() bit.set_bytes(value, 0, 1, 256) end, "exact byte overflow")
+expect_error(function() bit.set_bytes(value, 0, 1, -1) end, "negative number")
+expect_error(function() bit.set_bytes(value, 0, 1, 0.5) end, "floating point number")
+
+-- signed values
+local signed_value = 0
+signed_value = bit.set_bytes_signed(signed_value, 0, 1, -50)
+assert_equals(bit.extract_bytes_signed(signed_value, 0, 1), -50)
+assert_equals(bit.extract_bytes(signed_value, 0, 1), 206)
+
 
 print("Tests passed successfully.")
