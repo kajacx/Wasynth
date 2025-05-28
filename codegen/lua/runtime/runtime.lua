@@ -12,7 +12,22 @@ local i64 = identity -- ffi.typeof("int64_t")
 local math_ceil = math.ceil
 local math_floor = math.floor
 local to_number = tonumber
-local to_signed = bit.tobit
+-- local to_signed = bit.tobit
+
+local i32_to_u32 = bit.i32_to_u32
+local u32_to_i32 = bit.u32_to_i32
+local i64_to_u64 = bit.i64_to_u64
+local u64_to_i64 = bit.u64_to_i64
+
+local extract_bytes = bit.extract_bytes
+local extract_bytes_signed = bit.extract_bytes_signed
+local set_bytes = bit.set_bytes
+local set_bytes_signed = bit.set_bytes_signed
+
+local f32_from_bits = bit.f32_from_bits
+local f32_to_bits = bit.f32_to_bits
+local f64_from_bits = bit.f64_from_bits
+local f64_to_bits = bit.f64_to_bits
 
 -- local NUM_ZERO = i64(0)
 -- local NUM_ONE = i64(1)
@@ -653,72 +668,88 @@ do
 	end
 
 
-	local function load_byte(memory, addr)
-		local offset = addr % 4
-		return bit32.rshift(memory.data[(addr - offset) / 4] or 0, 8 * offset)
-	end
+	-- local function load_byte(memory, addr)
+	-- 	local offset = addr % 4
+	-- 	return bit32.rshift(memory.data[(addr - offset) / 4] or 0, 8 * offset)
+	-- end
 
-	local function store_byte(memory, addr, value)
-		local offset = addr % 4
-		local base = (addr - offset) / 4
-		local old = clear_byte(memory.data[base] or 0, offset)
-		memory.data[base] = bit32.bor(old, bit32.lshift(value, 8 * offset))
-	end
+	-- local function store_byte(memory, addr, value)
+	-- 	local offset = addr % 4
+	-- 	local base = (addr - offset) / 4
+	-- 	local old = clear_byte(memory.data[base] or 0, offset)
+	-- 	memory.data[base] = bit32.bor(old, bit32.lshift(value, 8 * offset))
+	-- end
 
 	function load.i32_i8(memory, addr)
-		return load_byte(memory, addr)
+		local offset = addr % 4
+		return extract_bytes_signed(memory[(addr - offset) / 4], offset, 1)
 	end
 
 	function load.i32_u8(memory, addr)
-		return load_byte(memory, addr)
+		local offset = addr % 4
+		return extract_bytes(memory[(addr - offset) / 4], offset, 1)
 	end
 
 	function load.i32_i16(memory, addr)
-		return memory[addr / 4] % (256 * 256)
+		if (addr % 2 ~= 0) then
+			error("Unaligned read in load.i32_i16: " .. addr)
+		end
+		local offset = addr % 4
+		return extract_bytes_signed(memory[(addr - offset) / 4], offset, 2)
 	end
 
 	function load.i32_u16(memory, addr)
-		return memory[addr / 4] % (256 * 256)
+		if (addr % 2 ~= 0) then
+			error("Unaligned read in load.i32_u16: " .. addr)
+		end
+		local offset = addr % 4
+		return extract_bytes(memory[(addr - offset) / 4], offset, 2)
 	end
 
 	function load.i32(memory, addr)
-		return memory[addr / 4]
+		if (addr % 4 ~= 0) then
+			error("Unaligned read in load.i32: " .. addr)
+		end
+		return bit.u32_to_i32(memory[addr / 4])
 	end
 
-	function load.i64_i8(memory, addr)
-		return memory[addr / 4] % 256
-	end
+	load.i64_i8 = load.i32_i8
+	load.i64_u8 = load.i32_u8
+	load.i64_i16 = load.i32_i16
+	load.i64_u16 = load.i32_u16
 
-	function load.i64_u8(memory, addr)
-		return memory[addr / 4] % 256
-	end
-
-	function load.i64_i16(memory, addr)
-		return memory[addr / 4] % (256 * 256)
-	end
-
-	function load.i64_u16(memory, addr)
-		return memory[addr / 4] % (256 * 256)
-	end
-
-	function load.i64_i32(memory, addr)
-		return memory[addr / 4]
-	end
+	load.i64_i32 = load.i32
 
 	function load.i64_u32(memory, addr)
+		if (addr % 4 ~= 0) then
+			error("Unaligned read in load.i64_u32: " .. addr)
+		end
 		return memory[addr / 4]
 	end
 
 	function load.i64(memory, addr)
-		return memory[addr / 4]
+		if (addr % 4 ~= 0) then
+			error("Unaligned read in load.i64: " .. addr)
+		end
+		local low = memory[addr / 4]
+		local high = memory[addr / 4 + 1]
+		return low + high * 2 ^ 32
 	end
 
 	function load.f32(memory, addr)
-		return memory[addr / 4]
+		if (addr % 4 ~= 0) then
+			error("Unaligned read in load.f32: " .. addr)
+		end
+		return f32_from_bits(memory[addr / 4])
 	end
 
 	function load.f64(memory, addr)
-		return memory[addr / 4]
+		if (addr % 4 ~= 0) then
+			error("Unaligned read in load.f64: " .. addr)
+		end
+		local low = memory[addr / 4]
+		local high = memory[addr / 4 + 1]
+		return f64_from_bits(low + high * 2 ^ 32)
 	end
 
 	function load.string(memory, addr, len)
@@ -728,39 +759,67 @@ do
 	end
 
 	function store.i32_n8(memory, addr, value)
-		memory[addr / 4] = value
+		local offset = addr % 4
+		local mem_addr = (addr - offset) - 4
+		memory[mem_addr] = set_bytes(memory[mem_addr], offset, 1, value)
 	end
 
 	function store.i32_n16(memory, addr, value)
-		memory[addr / 4] = value
+		if (addr % 2 ~= 0) then
+			error("Unaligned write in store.i32_n16: " .. addr)
+		end
+
+		local offset = addr % 4
+		local mem_addr = (addr - offset) - 4
+		memory[mem_addr] = set_bytes(memory[mem_addr], offset, 2, value)
 	end
 
 	function store.i32(memory, addr, value)
-		memory[addr / 4] = value
+		if (addr % 4 ~= 0) then
+			error("Unaligned write in store.i32: " .. addr)
+		end
+
+		memory[addr / 4] = i32_to_u32(value)
 	end
 
-	function store.i64_n8(memory, addr, value)
-		memory[addr / 4] = value
-	end
-
-	function store.i64_n16(memory, addr, value)
-		memory[addr / 4] = value
-	end
+	store.i64_n8 = store.i32_n8
+	store.i64_n16 = store.i32_n16
 
 	function store.i64_n32(memory, addr, value)
-		memory[addr / 4] = value
+		if (addr % 4 ~= 0) then
+			error("Unaligned write in store.i64_n32: " .. addr)
+		end
+
+		local unsigned = i64_to_u64(value)
+		memory[addr / 4] = unsigned % 2 ^ 32
 	end
 
 	function store.i64(memory, addr, value)
-		memory[addr / 4] = value
+		if (addr % 4 ~= 0) then
+			error("Unaligned write in store.i64: " .. addr)
+		end
+
+		local unsigned = i64_to_u64(value)
+		memory[addr / 4] = unsigned % 2 ^ 32
+		memory[addr / 4 + 1] = math.floor(unsigned / 2 ^ 32)
 	end
 
 	function store.f32(memory, addr, value)
-		memory[addr / 4] = value
+		if (addr % 4 ~= 0) then
+			error("Unaligned write in store.f32: " .. addr)
+		end
+
+		memory[addr / 4] = f32_to_bits(value)
 	end
 
 	function store.f64(memory, addr, value)
-		memory[addr / 4] = value
+		if (addr % 4 ~= 0) then
+			error("Unaligned write in store.f64: " .. addr)
+		end
+
+		local raw_bits = f64_to_bits(value)
+		memory[addr / 4] = raw_bits % 2 ^ 32
+		memory[addr / 4 + 1] = math.floor(raw_bits / 2 ^ 32)
 	end
 
 	function store.string(memory, addr, data, len)

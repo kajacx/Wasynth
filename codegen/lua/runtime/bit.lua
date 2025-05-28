@@ -37,9 +37,61 @@ local function set_bytes_signed(number, byte_start, byte_length, value)
     return set_bytes(number, byte_start, byte_length, value)
 end
 
+local function u32_to_i32(value)
+    if value >= 2 ^ 31 then
+        return value - 2 ^ 32
+    end
+    return value
+end
+
+local function i32_to_u32(value)
+    if value < 0 then
+        return value + 2 ^ 32
+    end
+    return value
+end
+
+local function u64_to_i64(value)
+    if value >= 2 ^ 63 then
+        return value - 2 ^ 64
+    end
+    return value
+end
+
+local function i64_to_u64(value)
+    if value < 0 then
+        return value + 2 ^ 64
+    end
+    return value
+end
+
+local function f32_to_bits(value)
+    return string.unpack("f", string.pack("I32", value))
+end
+
+local function f32_from_bits(bits)
+    return string.unpack("I32", string.pack("f", bits))
+end
+
+local function f64_to_bits(value)
+    return string.unpack("d", string.pack("I64", value))
+end
+
+local function f64_from_bits(bits)
+    return string.unpack("I64", string.pack("d", bits))
+end
+
 return {
     extract_bytes = extract_bytes,
     extract_bytes_signed = extract_bytes_signed,
     set_bytes = set_bytes,
     set_bytes_signed = set_bytes_signed,
+    i32_to_u32 = i32_to_u32,
+    u32_to_i32 = u32_to_i32,
+    i64_to_u64 = i64_to_u64,
+    u64_to_i64 = u64_to_i64,
+    f32_to_bits = f32_to_bits,
+    f32_from_bits = f32_from_bits,
+    f64_to_bits = f64_to_bits,
+    f64_from_bits = f64_from_bits,
 }
