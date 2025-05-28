@@ -81,17 +81,25 @@ local function f64_from_bits(bits)
     return string.unpack("I64", string.pack("d", bits))
 end
 
+local function identity(x) return x end
+
 return {
     extract_bytes = extract_bytes,
     extract_bytes_signed = extract_bytes_signed,
     set_bytes = set_bytes,
     set_bytes_signed = set_bytes_signed,
+
     i32_to_u32 = i32_to_u32,
     u32_to_i32 = u32_to_i32,
     i64_to_u64 = i64_to_u64,
     u64_to_i64 = u64_to_i64,
+
     f32_to_bits = f32_to_bits,
     f32_from_bits = f32_from_bits,
     f64_to_bits = f64_to_bits,
     f64_from_bits = f64_from_bits,
+
+    band = identity,
+    lshift = identity,
+    rshift = identity,
 }

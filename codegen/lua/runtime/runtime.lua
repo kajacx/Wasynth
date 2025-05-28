@@ -70,51 +70,47 @@ do
 	end
 
 	function add.i32(lhs, rhs)
-		return (to_signed(lhs + rhs))
+		return (lhs + rhs)
 	end
 
 	function sub.i32(lhs, rhs)
-		return (to_signed(lhs - rhs))
+		return (lhs - rhs)
 	end
 
 	function mul.i32(lhs, rhs)
-		return (to_signed(NUM_ONE * lhs * rhs))
+		return lhs * rhs
 	end
 
 	function div.i32(lhs, rhs)
 		assert(rhs ~= 0, "division by zero")
 
-		return (truncate_f64(lhs / rhs))
+		return lhs / rhs
 	end
 
 	function div.u32(lhs, rhs)
 		assert(rhs ~= 0, "division by zero")
 
-		lhs = to_number(u32(lhs))
-		rhs = to_number(u32(rhs))
-
-		return (to_signed(math_floor(lhs / rhs)))
+		return math_floor(lhs / rhs)
 	end
 
 	function rem.u32(lhs, rhs)
 		assert(rhs ~= 0, "division by zero")
 
-		lhs = to_number(u32(lhs))
-		rhs = to_number(u32(rhs))
-
-		return (to_signed(lhs % rhs))
+		return (lhs % rhs)
 	end
 
 	function div.u64(lhs, rhs)
 		assert(rhs ~= 0, "division by zero")
 
-		return (i64(u64(lhs) / u64(rhs)))
+		-- return (i64(u64(lhs) / u64(rhs)))
+		return lhs / rhs
 	end
 
 	function rem.u64(lhs, rhs)
 		assert(rhs ~= 0, "division by zero")
 
-		return (i64(u64(lhs) % u64(rhs)))
+		-- return (i64(u64(lhs) % u64(rhs)))
+		return lhs % rhs
 	end
 
 	function neg.f32(num)
@@ -127,7 +123,7 @@ do
 		elseif rhs ~= rhs then
 			return rhs
 		else
-			return (math_min(lhs, rhs))
+			return math_min(lhs, rhs)
 		end
 	end
 
@@ -137,15 +133,13 @@ do
 		elseif rhs ~= rhs then
 			return rhs
 		else
-			return (math_max(lhs, rhs))
+			return math_max(lhs, rhs)
 		end
 	end
 
 	function copysign.f32(lhs, rhs)
-		RE_INSTANCE.f64 = rhs
-
-		if RE_INSTANCE.b32 >= 0 then
-			return (math_abs(lhs))
+		if rhs >= 0 then
+			return math_abs(lhs)
 		else
 			return -math_abs(lhs)
 		end
@@ -421,9 +415,9 @@ do
 
 	local bit_and = bit.band
 
-	local NUM_MIN_I64 = bit.lshift(NUM_ONE, 63)
-	local NUM_MAX_I64 = bit.bnot(NUM_MIN_I64)
-	local NUM_MAX_U64 = bit.bnot(NUM_ZERO)
+	local NUM_MIN_I64 = -2 ^ 63
+	local NUM_MAX_I64 = 2 ^ 63 - 1 -- TODO: "- 1" will be ignored because of floating point loss?
+	local NUM_MAX_U64 = 2 ^ 64 - 1
 
 	-- This would surely be an issue in a multi-thread environment...
 	-- ... thankfully this isn't one.
@@ -434,11 +428,11 @@ do
 	-- 	double f64;
 	-- }]])
 
-	function wrap.i32_i64(num)
-		RE_INSTANCE.i64 = num
+	-- function wrap.i32_i64(num)
+	-- 	RE_INSTANCE.i64 = num
 
-		return RE_INSTANCE.i32
-	end
+	-- 	return RE_INSTANCE.i32
+	-- end
 
 	truncate.i32_f32 = truncate_f64
 	truncate.i32_f64 = truncate_f64
@@ -563,10 +557,11 @@ do
 	extend.i64_i32 = i64
 
 	function extend.i64_u32(num)
-		RE_INSTANCE.i64 = NUM_ZERO
-		RE_INSTANCE.i32 = num
+		-- RE_INSTANCE.i64 = NUM_ZERO
+		-- RE_INSTANCE.i32 = num
 
-		return RE_INSTANCE.i64
+		-- return RE_INSTANCE.i64
+		return num
 	end
 
 	function convert.f32_i32(num)
@@ -592,27 +587,31 @@ do
 	promote.f64_f32 = demote.f32_f64
 
 	function reinterpret.i32_f32(num)
-		RE_INSTANCE.f32 = num
+		-- RE_INSTANCE.f32 = num
+		-- return RE_INSTANCE.i32
 
-		return RE_INSTANCE.i32
+		return f32_to_bits(num)
 	end
 
 	function reinterpret.i64_f64(num)
-		RE_INSTANCE.f64 = num
+		-- RE_INSTANCE.f64 = num
+		-- return RE_INSTANCE.i64
 
-		return RE_INSTANCE.i64
+		return f64_to_bits(num)
 	end
 
 	function reinterpret.f32_i32(num)
-		RE_INSTANCE.i32 = num
+		-- RE_INSTANCE.i32 = num
+		-- return RE_INSTANCE.f32
 
-		return RE_INSTANCE.f32
+		return f32_from_bits(num)
 	end
 
 	function reinterpret.f64_i64(num)
-		RE_INSTANCE.i64 = num
+		-- RE_INSTANCE.i64 = num
+		-- return RE_INSTANCE.f64
 
-		return RE_INSTANCE.f64
+		return f64_from_bits(num)
 	end
 
 	module.wrap = wrap
@@ -710,7 +709,7 @@ do
 		if (addr % 4 ~= 0) then
 			error("Unaligned read in load.i32: " .. addr)
 		end
-		return bit.u32_to_i32(memory[addr / 4])
+		return u32_to_i32(memory[addr / 4])
 	end
 
 	load.i64_i8 = load.i32_i8
