@@ -822,8 +822,17 @@ do
 	end
 
 	function store.string(memory, addr, data, len)
-		local start = by_offset(memory, addr)
+		-- local start = by_offset(memory, addr)
 
+		for i = 1, #data do
+			local code = string.byte(data, i)
+
+			local byte_addr = addr + i - 1
+			local offset = byte_addr % 4
+			local mem_addr = (byte_addr - offset) / 4
+
+			memory[mem_addr] = set_bytes(memory[mem_addr] or 0, offset, 1, code)
+		end
 		-- ffi.copy(start, data, len or #data)
 	end
 
