@@ -81,7 +81,34 @@ local function f64_from_bits(bits)
     return string.unpack("I64", string.pack("d", bits))
 end
 
-local function identity(x) return x end
+-- from https://stackoverflow.com/a/32387452/1003886
+local function bitand(a, b)
+    local result = 0
+    local bitval = 1
+    while a > 0 and b > 0 do
+        if a % 2 == 1 and b % 2 == 1 then -- test the rightmost bits
+            result = result + bitval      -- set the current bit
+        end
+        bitval = bitval * 2               -- shift left
+        a = math.floor(a / 2)             -- shift right
+        b = math.floor(b / 2)
+    end
+    return result
+end
+
+local function lshift(value, bits)
+    if (value ~= math.floor(value)) then
+        error("Floating point value in lshift: .. " .. value)
+    end
+    return math.floor(value * 2 ^ bits)
+end
+
+local function rshift(value, bits)
+    if (value ~= math.floor(value)) then
+        error("Floating point value in rshift: .. " .. value)
+    end
+    return math.floor(value / 2 ^ bits)
+end
 
 return {
     extract_bytes = extract_bytes,
@@ -99,7 +126,7 @@ return {
     f64_to_bits = f64_to_bits,
     f64_from_bits = f64_from_bits,
 
-    band = identity,
-    lshift = identity,
-    rshift = identity,
+    band = bitand,
+    lshift = lshift,
+    rshift = rshift,
 }
